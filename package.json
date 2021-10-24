@@ -1,0 +1,45 @@
+{
+  "name": "slate-vue-alpha",
+  "version": "0.0.0",
+  "main": "dist/es/index.js",
+  "module": "dist/es/index.js",
+  "umd": "dist/umd/index.js",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build:site": "vue-tsc --noEmit && vite build",
+    "serve:site": "vite preview",
+    "build:cjs": "tsc -m commonjs --target es5 --outDir dist/cjs",
+    "build:es": "tsc -m es6  --target es5 --outDir dist/esm",
+    "build:umd": "tsc -m umd  --target es5 --outDir dist/umd",
+    "build:esnext": "tsc -m ESNext --target ESNext --outDir dist/esnext",
+    "build": "yarn cleanup && yarn build:cjs && yarn build:es && yarn build:esnext &&  yarn build:umd",
+    "cleanup": "rimraf dist"
+  },
+  "peerDependencies": {
+    "slate": "^0.66.0",
+    "vue": "^3.0.0"
+  },
+  "dependencies": {
+    "direction": "^2.0.0",
+    "is-hotkey": "^0.2.0",
+    "lodash": "^4.17.21",
+    "scroll-into-view-if-needed": "^2.2.28"
+  },
+  "devDependencies": {
+    "@types/is-hotkey": "^0.1.5",
+    "@types/lodash": "^4.14.176",
+    "@vitejs/plugin-vue": "^1.9.3",
+    "@vitejs/plugin-vue-jsx": "^1.2.0",
+    "is-hotkey": "^0.2.0",
+    "rimraf": "^3.0.2",
+    "slate": "^0.66.5",
+    "typescript": "^4.4.3",
+    "vite": "^2.6.10",
+    "vue": "^3.2.16",
+    "vue-router": "^4.0.12",
+    "vue-tsc": "^0.3.0"
+  }
+}
