@@ -1,6 +1,6 @@
 import { Ancestor, Descendant, Editor, Element, Range } from 'slate'
 import { ReactEditor, useSlateStatic } from '..'
-import { defineComponent, PropType, toRaw } from 'vue'
+import { defineComponent, PropType } from 'vue'
 import { NODE_TO_INDEX, NODE_TO_PARENT } from '../utils/weak-maps'
 import { useDecorate } from '../hooks/use-decorate'
 import TextComponent from '../components/text'
@@ -32,7 +32,6 @@ export const Children = defineComponent({
       const path = ReactEditor.findPath(editor, node)
       const isLeafBlock = Element.isElement(node) && !editor.isInline(node) && Editor.hasInlines(editor, node)
 
-      console.log(toRaw(node))
       return (
         <>
           {node.children.map((_, i) => {

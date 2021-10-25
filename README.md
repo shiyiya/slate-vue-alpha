@@ -1,6 +1,5 @@
 <h1 align="center">WIP</h1>
 
-
 ## Examples
 
 See all examples in [online example](https://shiyiya.github.io/slate-vue-alpha/).
@@ -9,13 +8,26 @@ See all examples in [online example](https://shiyiya.github.io/slate-vue-alpha/)
 
 ```jsx
 // jsx
+const renderElement = (props) => <Element {...props} />
+const renderLeaf = (props) => <Leaf {...props} />
 const editor = () => (
-  <Slate>
-    <Editor
-      renderLeaf={props => <Element {...props} />}
-      renderElement={props => <Leaf {...props} />}
-    />
-  </Slate>
+  <>
+    <Slate>
+      <Editor renderLeaf={renderLeaf} renderElement={renderElement} />
+      <Editor>
+        {{
+          elment: renderElement,
+          leaf: renderLeaf
+        }}
+      </Editor>
+      <Editor
+        v-slots={{
+          elment: renderElement,
+          leaf: renderLeaf
+        }}
+      />
+    </Slate>
+  </>
 )
 ```
 
@@ -25,8 +37,8 @@ const editor = () => (
 <template>
   <Slate>
     <Editor>
-      <template v-slot:elment/>
-      <template v-slot:leaf/>
+      <template v-slot:elment />
+      <template v-slot:leaf />
     </Editor>
   </Slate>
 </template>
@@ -65,7 +77,7 @@ import
 
 ```javascript
 import Vue from 'vue'
-import { SlatePlugin } from 'slate-vue';
+import { SlatePlugin } from 'slate-vue'
 
 Vue.use(SlatePlugin)
 ```
@@ -73,7 +85,6 @@ Vue.use(SlatePlugin)
 use
 
 ```vue
-
 <template>
   <Slate :value="value">
     <Editable placeholder="Enter some plain text..."></Editable>
@@ -86,10 +97,8 @@ import { Slate, Editable } from 'slate-vue'
 // this value is for editor
 const initialValue = [
   {
-    children: [
-      { text: 'This is editable plain text, just like a <textarea>!' },
-    ],
-  },
+    children: [{ text: 'This is editable plain text, just like a <textarea>!' }]
+  }
 ]
 export default {
   name: 'index',
@@ -97,12 +106,12 @@ export default {
     Slate,
     Editable
   },
-  data () {
+  data() {
     return {
       value: JSON.stringify(initialValue)
     }
   }
-};
+}
 </script>
 ```
 
@@ -119,8 +128,8 @@ You can use this [codesandbox template](https://codesandbox.io/s/2984l) to repro
 ## Environment Support
 
 | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/edge/edge_48x48.png" alt="Edge" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br>IE / Edge | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/firefox/firefox_48x48.png" alt="Firefox" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br>Firefox | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/chrome/chrome_48x48.png" alt="Chrome" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br>Chrome | [<img src="https://raw.githubusercontent.com/alrra/browser-logos/master/src/safari/safari_48x48.png" alt="Safari" width="24px" height="24px" />](http://godban.github.io/browsers-support-badges/)<br>Safari |
-| --- | --- | --- | --- |
-| testing | testing | 86.0+ | testing |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| testing                                                                                                                                                                                                   | testing                                                                                                                                                                                                          | 86.0+                                                                                                                                                                                                        | testing                                                                                                                                                                                                      |
 
 ## License
 
