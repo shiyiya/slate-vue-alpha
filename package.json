@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build:site": "vue-tsc --noEmit && vite build",
+    "build:site": "cross-env NODE_ENV=production && vue-tsc --noEmit && vite build",
     "serve:site": "vite preview",
     "build:cjs": "tsc -m commonjs --target es5 --outDir dist/cjs",
     "build:es": "tsc -m es6  --target es5 --outDir dist/esm",
@@ -33,6 +33,7 @@
     "@types/lodash": "^4.14.176",
     "@vitejs/plugin-vue": "^1.9.3",
     "@vitejs/plugin-vue-jsx": "^1.2.0",
+    "cross-env": "^7.0.3",
     "is-hotkey": "^0.2.0",
     "rimraf": "^3.0.2",
     "slate": "^0.66.5",
