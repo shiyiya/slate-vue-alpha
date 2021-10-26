@@ -5,7 +5,6 @@ import { NODE_TO_INDEX, NODE_TO_PARENT } from '../utils/weak-maps'
 import { useDecorate } from '../hooks/use-decorate'
 import TextComponent from '../components/text'
 import { Element as ElementComponent } from '../components/element'
-import { defaultDecorate } from './editable'
 
 type ChildrenProps = {
   decorations: Range[]
@@ -23,14 +22,17 @@ const ChildrenProps = {
 }
 
 export const Children = defineComponent({
+  name: 'Children',
   props: ChildrenProps,
   setup(props) {
     return () => {
-      const { decorations, node, selection } = props as ChildrenProps
-      const decorate = useDecorate() || defaultDecorate
+      const decorate = useDecorate()
       const editor = useSlateStatic()
+      const { decorations, node, selection } = props as ChildrenProps
       const path = ReactEditor.findPath(editor, node)
       const isLeafBlock = Element.isElement(node) && !editor.isInline(node) && Editor.hasInlines(editor, node)
+
+      console.info('%c Children Rerender ', 'background: #ed143d7d; padding:3px 0px; color: #fff;')
 
       return (
         <>

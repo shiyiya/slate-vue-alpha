@@ -1,6 +1,6 @@
 import { Element, Range, Text as SlateText } from 'slate'
 import { EDITOR_TO_KEY_TO_ELEMENT, ELEMENT_TO_NODE, NODE_TO_ELEMENT } from '../utils/weak-maps'
-import { defineComponent, onMounted, onUpdated, PropType, ref as useRef } from 'vue'
+import {defineComponent, onMounted, onUpdated, PropType, ref as useRef, toRaw} from 'vue'
 import Leaf from './leaf'
 import { useSlateStatic } from '../hooks/use-slate-static'
 import { ReactEditor } from '../plugin/react-editor'
@@ -28,6 +28,7 @@ const TextProps = {
 }
 
 const Text = defineComponent({
+  name:'Text',
   props: TextProps,
   setup(props) {
     const editor = useSlateStatic()
@@ -53,6 +54,9 @@ const Text = defineComponent({
     onUpdated(reactEffect)
 
     return () => {
+      console.info('%c Text Rerender ', 'background: blue; padding:3px 0px; color: #fff;')
+      console.info(toRaw(props))
+
       const { isLast, parent, text } = props as TextProps
       return (
         <span data-slate-node="text" ref={ref}>

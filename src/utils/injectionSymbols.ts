@@ -1,12 +1,12 @@
-import {NodeEntry, Range} from 'slate'
-import { InjectionKey } from 'vue'
+import { NodeEntry, Range } from 'slate'
+import { InjectionKey, Ref } from 'vue'
 import { ReactEditor } from 'slate-vue-alpha'
 
 export const hasSymbol = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol'
 
 export const PolySymbol = (name: string) => (hasSymbol ? Symbol(name) : '[slate-vue]' + name)
 
-export const SlateKey = /*#__PURE__*/ PolySymbol('slate') as InjectionKey<[ReactEditor]>
+export const SlateKey = /*#__PURE__*/ PolySymbol('slate') as InjectionKey<Ref<[ReactEditor]>>
 
 export const SlateStaticKey = /*#__PURE__*/ PolySymbol('slateStatic') as InjectionKey<ReactEditor>
 

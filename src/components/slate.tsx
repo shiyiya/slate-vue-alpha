@@ -1,17 +1,7 @@
 import { Descendant, Editor, Node } from 'slate'
 import { ReactEditor } from '../plugin/react-editor'
 import { EDITOR_TO_ON_CHANGE } from '../utils/weak-maps'
-import {
-  defineComponent,
-  onBeforeUnmount,
-  onMounted,
-  onUpdated,
-  PropType,
-  provide,
-  renderSlot,
-  toRaw,
-  watchEffect
-} from 'vue'
+import { defineComponent, onBeforeUnmount, onMounted, PropType, provide, renderSlot, watchEffect } from 'vue'
 import { useState } from '../hooks/use-state'
 import { EditorFocusedKey, SlateKey, SlateStaticKey } from '../utils/injectionSymbols'
 
@@ -36,6 +26,7 @@ const SlateProps = {
 }
 
 export const Slate = defineComponent({
+  name: 'Slate',
   props: SlateProps,
   emits: ['change'],
   setup(props, { emit, slots }) {
@@ -47,7 +38,7 @@ export const Slate = defineComponent({
       if (!Editor.isEditor(editor)) {
         throw new Error(`[Slate] editor is invalid! you passed:` + `${JSON.stringify(editor)}`)
       }
-      editor.children = toRaw(value)
+      editor.children = value
       Object.assign(editor, rest)
       return [editor]
     })
@@ -63,28 +54,26 @@ export const Slate = defineComponent({
       EDITOR_TO_ON_CHANGE.set(props.editor!, onContextChange)
     })
 
-    const fn = () => setIsFocused(ReactEditor.isFocused(props.editor!))
-    const fn2 = () => setIsFocused(ReactEditor.isFocused(props.editor!))
+    const autoFocus = () => setIsFocused(ReactEditor.isFocused(props.editor!))
 
     onMounted(() => {
-      document.addEventListener('focus', fn, true)
-      document.addEventListener('blur', fn2, true)
+      document.addEventListener('focus', autoFocus, true)
+      document.addEventListener('blur', autoFocus, true)
     })
 
     onBeforeUnmount(() => {
       EDITOR_TO_ON_CHANGE.set(props.editor!, () => {})
-      document.removeEventListener('focus', fn, true)
-      document.removeEventListener('blur', fn2, true)
+      document.removeEventListener('focus', autoFocus, true)
+      document.removeEventListener('blur', autoFocus, true)
     })
 
-    onUpdated(() => {
-      setIsFocused(ReactEditor.isFocused(props.editor!))
-    })
-
-    provide(SlateKey, context.value)
+    provide(SlateKey, context)
     provide(SlateStaticKey, props.editor)
     provide(EditorFocusedKey, isFocused.value)
 
-    return () => renderSlot(slots, 'default')
+    return () => {
+      console.info('%c Slate Rerender ', 'background: #000;  padding:3px 0px; color: #fff;')
+      return renderSlot(slots, 'default')
+    }
   }
 })

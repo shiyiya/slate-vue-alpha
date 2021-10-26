@@ -1,5 +1,5 @@
 import { Editor, Element, Node, NodeEntry, Path, Range, Text, Transforms } from 'slate'
-import * as getDirection from 'direction'
+import { direction as getDirection } from 'direction'
 import throttle from 'lodash/throttle'
 import scrollIntoView from 'scroll-into-view-if-needed'
 import type * as React from 'vue'
@@ -12,8 +12,7 @@ import {
   provide,
   ref as useRef,
   renderSlot,
-  toRaw,
-  watchEffect
+  watch
 } from 'vue'
 import { ReactEditor } from '../plugin/react-editor'
 import {
@@ -45,157 +44,9 @@ import {
   IS_QQBROWSER,
   IS_SAFARI
 } from '../utils/environment'
-import { asNative, flushNativeEvents } from '../utils/native'
 import Hotkeys from '../utils/hotkeys'
 import { useSlate } from '../hooks/use-slate'
 import { Children } from './children'
-
-/**
- * The props that get passed to renderPlaceholder
- */
-export type RenderPlaceholderProps = {
-  attributes: {
-    'data-slate-placeholder': boolean
-    dir?: 'rtl'
-    contentEditable: boolean
-    ref: React.Ref
-    style: React.CSSProperties
-  }
-}
-
-/**
- * `RenderElementProps` are passed to the `renderElement` handler.
- */
-
-export interface RenderElementProps {
-  // children: any
-  element: Element
-  attributes: {
-    'data-slate-node': 'element'
-    'data-slate-inline'?: true
-    'data-slate-void'?: true
-    dir?: 'rtl'
-    ref: any
-  }
-}
-
-/**
- * `RenderLeafProps` are passed to the `renderLeaf` handler.
- */
-
-export interface RenderLeafProps {
-  children: any
-  leaf: Text
-  text: Text
-  attributes: {
-    'data-slate-leaf': true
-  }
-}
-
-/**
- * A default memoized decorate function.
- */
-
-export const defaultDecorate: (entry: NodeEntry) => Range[] = () => []
-
-/**
- * The default placeholder element
- */
-
-export const DefaultPlaceholder = defineComponent<{ attributes: Record<string, any> }>({
-  render() {
-    console.log('DefaultPlaceholder', this.$props.attributes)
-    return <span {...this.$props.attributes}>{renderSlot(this.$slots, 'default')}</span>
-  }
-})
-
-/**
- * A default implement to scroll dom range into view.
- */
-
-const defaultScrollSelectionIntoView = (_: ReactEditor, domRange: DOMRange) => {
-  const leafEl = domRange.startContainer.parentElement!
-  leafEl.getBoundingClientRect = domRange.getBoundingClientRect.bind(domRange)
-  scrollIntoView(leafEl, {
-    scrollMode: 'if-needed'
-  })
-
-  // @ts-ignore
-  delete leafEl.getBoundingClientRect
-}
-
-/**
- * Check if the target is editable and in the editor.
- */
-
-export const hasEditableTarget = (editor: ReactEditor, target: EventTarget | null): target is DOMNode => {
-  return isDOMNode(target) && ReactEditor.hasDOMNode(editor, target, { editable: true })
-}
-
-type ElementType<P = any> = {
-  [K in keyof JSX.IntrinsicElements]: P extends JSX.IntrinsicElements[K] ? K : never
-}[keyof JSX.IntrinsicElements]
-
-/**
- * Check if a DOM event is overrided by a handler.
- */
-
-export const isDOMEventHandled = <E extends Event>(event: E, handler?: (event: E) => void | boolean) => {
-  if (!handler) {
-    return false
-  }
-
-  // The custom event handler may return a boolean to specify whether the event
-  // shall be treated as being handled or not.
-  const shouldTreatEventAsHandled = handler(event)
-
-  if (shouldTreatEventAsHandled != null) {
-    return shouldTreatEventAsHandled
-  }
-
-  return event.defaultPrevented
-}
-
-/**
- * Check if the target is in the editor.
- */
-
-export const hasTarget = (editor: ReactEditor, target: EventTarget | null): target is DOMNode => {
-  return isDOMNode(target) && ReactEditor.hasDOMNode(editor, target)
-}
-
-/**
- * Check if the target is inside void and in the editor.
- */
-
-export const isTargetInsideVoid = (editor: ReactEditor, target: EventTarget | null): boolean => {
-  const slateNode = hasTarget(editor, target) && ReactEditor.toSlateNode(editor, target)
-  return Editor.isVoid(editor, slateNode)
-}
-
-/**
- * Check if an event is overrided by a handler.
- */
-
-export const isEventHandled = <EventType extends Event>(
-  event: EventType,
-  handler?: (event: EventType) => void | boolean
-) => {
-  if (!handler) {
-    return false
-  }
-  // The custom event handler may return a boolean to specify whether the event
-  // shall be treated as being handled or not.
-  const shouldTreatEventAsHandled = handler(event)
-
-  if (shouldTreatEventAsHandled != null) {
-    return shouldTreatEventAsHandled
-  }
-
-  return event.defaultPrevented
-  //TODO: What's isPropagationStopped ?
-  // return event.isDefaultPrevented() || event.isPropagationStopped()
-}
 
 export type EditableProps = {
   decorate?: (entry: NodeEntry) => Range[]
@@ -217,9 +68,9 @@ const EditableProps = {
   placeholder: String,
   readOnly: Boolean,
   role: String,
-  style: String,
+  style: Object,
   scrollSelectionIntoView: Function as PropType<(editor: ReactEditor, domRange: DOMRange) => void>,
-  as: Object as PropType<ElementType>,
+  as: String,
   autofocus: Boolean,
   spellcheck: Boolean,
   autocapitalize: Boolean,
@@ -227,18 +78,23 @@ const EditableProps = {
 }
 
 export const Editable = defineComponent({
+  name: 'Editable',
   props: EditableProps,
   setup(props) {
+    const slate = useSlate()
     // Rerender editor when composition status changed
-    //TODO: run effect
     const [isComposing, setIsComposing] = useState<boolean>(false)
     const ref = useRef<HTMLDivElement>()
-    const editor = toRaw(useSlate())
+    const deferredOperations = useRef<DeferredOperation[]>([])
 
     // Update internal state on each render.
-    watchEffect(() => {
-      IS_READ_ONLY.set(editor, props.readOnly ?? false)
-    })
+    watch(
+      [slate, () => props.readOnly],
+      () => {
+        IS_READ_ONLY.set(slate.value[0], props.readOnly ?? false)
+      },
+      { immediate: true }
+    )
 
     // Keep track of some state for the event handler logic.
     const state = {
@@ -255,6 +111,7 @@ export const Editable = defineComponent({
       }
 
       const { scrollSelectionIntoView = defaultScrollSelectionIntoView } = props
+      const editor = slate.value[0]
       // Update element-related weak maps with the DOM element ref.
       let window
       if (ref.value && (window = getDefaultView(ref.value))) {
@@ -292,7 +149,7 @@ export const Editable = defineComponent({
       // If the DOM selection is in the editor and the editor selection is already correct, we're done.
       if (hasDomSelection && hasDomSelectionInEditor && selection) {
         const slateRange = ReactEditor.toSlateRange(editor, domSelection, {
-          exactMatch: false,
+          exactMatch: true,
 
           // domSelection is not necessarily a valid Slate range
           // (e.g. when clicking on contentEditable:false element)
@@ -361,8 +218,8 @@ export const Editable = defineComponent({
     // to the real event sadly. (2019/11/01)
     // https://github.com/facebook/react/issues/11211
     const onDOMBeforeInput = (event: InputEvent) => {
-      console.log('onDOMBeforeInput', event)
       const { onDOMBeforeInput: propsOnDOMBeforeInput, readOnly = false } = props
+      const editor = slate.value[0]
       if (!readOnly && hasEditableTarget(editor, event.target) && !isDOMEventHandled(event, propsOnDOMBeforeInput)) {
         const { selection } = editor
         const { inputType: type } = event
@@ -385,7 +242,7 @@ export const Editable = defineComponent({
           event.data &&
           event.data.length === 1 &&
           /[a-z ]/i.test(event.data) &&
-          // Chrome seems to have issues correctly editing the start of nodes.
+          // Chrome has issues correctly editing the start of nodes: https://bugs.chromium.org/p/chromium/issues/detail?id=1249405
           // When there is an inline element, e.g. a link, and you select
           // right after it (the start of the next node).
           selection.anchor.offset !== 0
@@ -398,7 +255,8 @@ export const Editable = defineComponent({
             native = false
           }
 
-          // and because of the selection moving in `insertText` (create-editor.ts).
+          // Chrome also has issues correctly editing the end of nodes: https://bugs.chromium.org/p/chromium/issues/detail?id=1259100
+          // Therefore we don't allow native events to insert text at the end of nodes.
           const { anchor } = selection
           const inline = Editor.above(editor, {
             at: anchor,
@@ -528,9 +386,7 @@ export const Editable = defineComponent({
               // Only insertText operations use the native functionality, for now.
               // Potentially expand to single character deletes, as well.
               if (native) {
-                asNative(editor, () => Editor.insertText(editor, data), {
-                  onFlushed: () => event.preventDefault()
-                })
+                deferredOperations.value.push(() => Editor.insertText(editor, data))
               } else {
                 Editor.insertText(editor, data)
               }
@@ -563,10 +419,8 @@ export const Editable = defineComponent({
     // released. This causes issues in situations where another change happens
     // while a selection is being dragged.
     const onDOMSelectionChange = throttle(() => {
-      console.log('onDOMSelectionChange')
-      const { readOnly = false } = props
-
-      if (!readOnly && !state.isComposing && !state.isUpdatingSelection && !state.isDraggingInternally) {
+      if (!state.isComposing && !state.isUpdatingSelection && !state.isDraggingInternally) {
+        const editor = slate.value[0]
         const root = ReactEditor.findDocumentOrShadowRoot(editor)
         const { activeElement } = root
         const el = ReactEditor.toDOMNode(editor, editor)
@@ -607,18 +461,21 @@ export const Editable = defineComponent({
     // fire for any change to the selection inside the editor. (2019/11/04)
     // https://github.com/facebook/react/issues/5785
     onMounted(() => {
+      const editor = slate.value[0]
       ReactEditor.getWindow(editor).document.addEventListener('selectionchange', scheduleOnDOMSelectionChange)
     })
 
     onBeforeUnmount(() => {
+      const editor = slate.value[0]
       ReactEditor.getWindow(editor).document.removeEventListener('selectionchange', scheduleOnDOMSelectionChange)
     })
 
     // provide Ref or Raw ?
     provide(SlateReadOnlyKey, props.readOnly) // TODO: will update ?
-    provide(SlateDecorateKey, props.decorate)
+    provide(SlateDecorateKey, props.decorate ?? defaultDecorate)
 
     return () => {
+      const editor = slate.value[0]
       const { placeholder, decorate = defaultDecorate } = props
       const decorations = decorate([editor, []])
 
@@ -627,7 +484,7 @@ export const Editable = defineComponent({
         editor.children.length === 1 &&
         Array.from(Node.texts(editor)).length === 1 &&
         Node.string(editor) === '' &&
-        !isComposing
+        !isComposing.value
       ) {
         const start = Editor.start(editor, [])
         decorations.push({
@@ -646,8 +503,17 @@ export const Editable = defineComponent({
         scrollSelectionIntoView = defaultScrollSelectionIntoView,
         style = {},
         as: Component = 'div',
+        role = 'textbox',
+        autocorrect,
+        autocapitalize,
+        spellcheck,
         ...attributes
       } = props
+      const _spellCheck = !HAS_BEFORE_INPUT_SUPPORT ? false : spellcheck
+      const _autoCorrect = !HAS_BEFORE_INPUT_SUPPORT ? 'false' : autocorrect
+      const _autoCapitalize = !HAS_BEFORE_INPUT_SUPPORT ? 'false' : autocapitalize
+
+      console.info('%c Editable Rerender ', 'background: #40b3ec;  padding:3px 0px; color: #fff;')
 
       return (
         <Component
@@ -655,19 +521,22 @@ export const Editable = defineComponent({
           // out from under `contenteditable` elements, which leads to weird
           // behaviors so we have to disable it like editor. (2017/04/24)
           data-gramm={false}
-          //TODO: type fix
-          //@ts-ignore
-          role={readOnly ? undefined : 'textbox'}
           {...attributes}
+          //@ts-ignore
+          role={readOnly ? undefined : role}
           // COMPAT: Certain browsers don't support the `beforeinput` event, so we'd
           // have to use hacks to make these replacement-based features work.
-          // @ts-ignore
-          spellCheck={!HAS_BEFORE_INPUT_SUPPORT ? false : attributes.spellcheck}
-          autoCorrect={!HAS_BEFORE_INPUT_SUPPORT ? 'false' : attributes.autocorrect}
-          autoCapitalize={!HAS_BEFORE_INPUT_SUPPORT ? 'false' : attributes.autocapitalize}
+          spellCheck={_spellCheck}
+          autoCorrect={_autoCorrect}
+          autoCapitalize={_autoCapitalize}
           data-slate-editor
           data-slate-node="value"
-          contenteditable={readOnly ? undefined : true}
+          // explicitly set this
+          contentEditable={!readOnly}
+          // in some cases, a decoration needs access to the range / selection to decorate a text node,
+          // then you will select the whole text node when you select part the of text
+          // this magic zIndex="-1" will fix it
+          zindex={-1}
           suppressContentEditableWarning
           ref={ref}
           style={{
@@ -680,11 +549,9 @@ export const Editable = defineComponent({
             // Allow words to break if they are too long.
             wordWrap: 'break-word',
             // Allow for passed-in styles to override anything.
-            //@ts-ignore
             ...style
           }}
-          onBeforeInput={(event: any) => {
-            console.log('onBeforeInput', event)
+          onBeforeInput={(event: Event /* React.FormEvent<HTMLDivElement> */) => {
             // COMPAT: Certain browsers don't support the `beforeinput` event, so we
             // fall back to React's leaky polyfill instead just for it. It
             // only works for the `insertText` input type.
@@ -702,15 +569,16 @@ export const Editable = defineComponent({
             }
           }}
           onInput={() => {
-            console.log('onInput')
             // Flush native operations, as native events will have propogated
             // and we can correctly compare DOM text values in components
             // to stop rendering, so that browser functions like autocorrect
             // and spellcheck work as expected.
-            flushNativeEvents(editor)
+            for (const op of deferredOperations.value) {
+              op()
+            }
+            deferredOperations.value = []
           }}
           onBlur={(event: FocusEvent) => {
-            console.log('onBlur', event)
             if (
               readOnly ||
               state.isUpdatingSelection ||
@@ -766,8 +634,7 @@ export const Editable = defineComponent({
 
             IS_FOCUSED.delete(editor)
           }}
-          onClick={(event: FocusEvent) => {
-            console.log('onClick', event)
+          onClick={(event: MouseEvent) => {
             if (
               !readOnly &&
               hasTarget(editor, event.target) &&
@@ -776,19 +643,29 @@ export const Editable = defineComponent({
             ) {
               const node = ReactEditor.toSlateNode(editor, event.target)
               const path = ReactEditor.findPath(editor, node)
-              const start = Editor.start(editor, path)
-              const end = Editor.end(editor, path)
-              const startVoid = Editor.void(editor, { at: start })
-              const endVoid = Editor.void(editor, { at: end })
 
-              if (startVoid && endVoid && Path.equals(startVoid[1], endVoid[1])) {
-                const range = Editor.range(editor, start)
-                Transforms.select(editor, range)
+              // At this time, the Slate document may be arbitrarily different,
+              // because onClick handlers can change the document before we get here.
+              // Therefore we must check that this path actually exists,
+              // and that it still refers to the same node.
+              if (Editor.hasPath(editor, path)) {
+                const lookupNode = Node.get(editor, path)
+                if (lookupNode === node) {
+                  const start = Editor.start(editor, path)
+                  const end = Editor.end(editor, path)
+
+                  const startVoid = Editor.void(editor, { at: start })
+                  const endVoid = Editor.void(editor, { at: end })
+
+                  if (startVoid && endVoid && Path.equals(startVoid[1], endVoid[1])) {
+                    const range = Editor.range(editor, start)
+                    Transforms.select(editor, range)
+                  }
+                }
               }
             }
           }}
           onCompositionEnd={(event: CompositionEvent) => {
-            console.log('onCompositionEnd', event)
             if (hasEditableTarget(editor, event.target) && !isEventHandled(event, attributes.onCompositionEnd)) {
               state.isComposing && setIsComposing(false)
               state.isComposing = false
@@ -820,14 +697,12 @@ export const Editable = defineComponent({
             }
           }}
           onCompositionUpdate={(event: CompositionEvent) => {
-            console.log('onCompositionUpdate', event)
             if (hasEditableTarget(editor, event.target) && !isEventHandled(event, attributes.onCompositionUpdate)) {
               !state.isComposing && setIsComposing(true)
               state.isComposing = true
             }
           }}
           onCompositionStart={(event: CompositionEvent) => {
-            console.log('onCompositionStart', event)
             if (hasEditableTarget(editor, event.target) && !isEventHandled(event, attributes.onCompositionStart)) {
               const { selection, marks } = editor
               if (selection) {
@@ -869,14 +744,12 @@ export const Editable = defineComponent({
             }
           }}
           onCopy={(event: ClipboardEvent) => {
-            console.log('onCopy', event)
             if (hasEditableTarget(editor, event.target) && !isEventHandled(event, attributes.onCopy)) {
               event.preventDefault()
               event.clipboardData && ReactEditor.setFragmentData(editor, event.clipboardData)
             }
           }}
           onCut={(event: ClipboardEvent) => {
-            console.log('onCut', event)
             if (!readOnly && hasEditableTarget(editor, event.target) && !isEventHandled(event, attributes.onCut)) {
               event.preventDefault()
               event.clipboardData && ReactEditor.setFragmentData(editor, event.clipboardData)
@@ -895,7 +768,6 @@ export const Editable = defineComponent({
             }
           }}
           onDragOver={(event: DragEvent) => {
-            console.log('onDragOver', event)
             if (hasTarget(editor, event.target) && !isEventHandled(event, attributes.onDragOver)) {
               // Only when the target is void, call `preventDefault` to signal
               // that drops are allowed. Editable content is droppable by
@@ -908,16 +780,10 @@ export const Editable = defineComponent({
             }
           }}
           onDragStart={(event: DragEvent) => {
-            console.log('onDragStart', event)
-            if (hasTarget(editor, event.target) && !isEventHandled(event, attributes.onDragStart)) {
+            if (!readOnly && hasTarget(editor, event.target) && !isEventHandled(event, attributes.onDragStart)) {
               const node = ReactEditor.toSlateNode(editor, event.target)
               const path = ReactEditor.findPath(editor, node)
-              const voidMatch =
-                Editor.isVoid(editor, node) ||
-                Editor.void(editor, {
-                  at: path,
-                  voids: true
-                })
+              const voidMatch = Editor.isVoid(editor, node) || Editor.void(editor, { at: path, voids: true })
 
               // If starting a drag on a void node, make sure it is selected
               // so that it shows up in the selection's fragment.
@@ -932,7 +798,6 @@ export const Editable = defineComponent({
             }
           }}
           onDrop={(event: DragEvent) => {
-            console.log('onDrop', event)
             if (!readOnly && hasTarget(editor, event.target) && !isEventHandled(event, attributes.onDrop)) {
               event.preventDefault()
 
@@ -965,7 +830,6 @@ export const Editable = defineComponent({
             }
           }}
           onDragEnd={(event: DragEvent) => {
-            console.log('onDragEnd', event)
             // When dropping on a different droppable element than the current editor,
             // `onDrop` is not called. So we need to clean up in `onDragEnd` instead.
             // Note: `onDragEnd` is only called when `onDrop` is not called
@@ -979,7 +843,6 @@ export const Editable = defineComponent({
             }
           }}
           onFocus={(event: FocusEvent) => {
-            console.log('onFocus', event)
             if (
               !readOnly &&
               !state.isUpdatingSelection &&
@@ -1002,7 +865,6 @@ export const Editable = defineComponent({
             }
           }}
           onKeyDown={(event: KeyboardEvent) => {
-            console.log('onKeyDown', event)
             if (
               !readOnly &&
               !state.isComposing &&
@@ -1013,7 +875,7 @@ export const Editable = defineComponent({
               const { selection } = editor
 
               const element = editor.children[selection !== null ? selection.focus.path[0] : 0]
-              const isRTL = getDirection.default(Node.string(element)) === 'rtl'
+              const isRTL = getDirection(Node.string(element)) === 'rtl'
 
               // COMPAT: Since we prevent the default behavior on
               // `beforeinput` events, the browser doesn't think there's ever
@@ -1243,7 +1105,6 @@ export const Editable = defineComponent({
             }
           }}
           onPaste={(event: ClipboardEvent) => {
-            console.log('onPaste')
             if (!readOnly && hasEditableTarget(editor, event.target) && !isEventHandled(event, attributes.onPaste)) {
               // COMPAT: Certain browsers don't support the `beforeinput` event, so we
               // fall back to React's `onPaste` here instead.
@@ -1251,20 +1112,164 @@ export const Editable = defineComponent({
               // when "paste without formatting" is used, so fallback. (2020/02/20)
               if (!HAS_BEFORE_INPUT_SUPPORT || isPlainTextOnlyPaste(event)) {
                 event.preventDefault()
-                event?.clipboardData && ReactEditor.insertData(editor, event.clipboardData)
+                event.clipboardData && ReactEditor.insertData(editor, event.clipboardData)
               }
             }
           }}>
-          <Children
-            decorations={decorations}
-            node={editor}
-            // renderElement={(props) => renderSlot(this.$slots, 'element', props)}
-            // renderPlaceholder={(props) => renderSlot(this.$slots, 'placeholder', props)}
-            // renderLeaf={(props) => renderSlot(this.$slots, 'leaf', props)}
-            selection={editor.selection}
-          />
+          <Children decorations={decorations} node={editor} selection={editor.selection} />
         </Component>
       )
     }
   }
 })
+
+type DeferredOperation = () => void
+
+/**
+ * The props that get passed to renderPlaceholder
+ */
+export type RenderPlaceholderProps = {
+  attributes: {
+    'data-slate-placeholder': boolean
+    dir?: 'rtl'
+    contentEditable: boolean
+    ref: React.Ref
+    style: React.CSSProperties
+  }
+}
+
+/**
+ * `RenderElementProps` are passed to the `renderElement` handler.
+ */
+
+export interface RenderElementProps {
+  // children: any
+  element: Element
+  attributes: {
+    'data-slate-node': 'element'
+    'data-slate-inline'?: true
+    'data-slate-void'?: true
+    dir?: 'rtl'
+    ref: any
+  }
+}
+
+/**
+ * `RenderLeafProps` are passed to the `renderLeaf` handler.
+ */
+
+export interface RenderLeafProps {
+  children: any
+  leaf: Text
+  text: Text
+  attributes: {
+    'data-slate-leaf': true
+  }
+}
+
+/**
+ * A default memoized decorate function.
+ */
+
+export const defaultDecorate: (entry: NodeEntry) => Range[] = () => []
+
+/**
+ * The default placeholder element
+ */
+
+export const DefaultPlaceholder = defineComponent({
+  props: {
+    attributes: Object as PropType<Record<string, any>>
+  },
+  render() {
+    return <span {...this.$props.attributes}>{renderSlot(this.$slots, 'default')}</span>
+  }
+})
+
+/**
+ * A default implement to scroll dom range into view.
+ */
+
+const defaultScrollSelectionIntoView = (_: ReactEditor, domRange: DOMRange) => {
+  const leafEl = domRange.startContainer.parentElement!
+  leafEl.getBoundingClientRect = domRange.getBoundingClientRect.bind(domRange)
+  scrollIntoView(leafEl, {
+    scrollMode: 'if-needed'
+  })
+
+  // @ts-ignore
+  delete leafEl.getBoundingClientRect
+}
+
+/**
+ * Check if the target is editable and in the editor.
+ */
+
+export const hasEditableTarget = (editor: ReactEditor, target: EventTarget | null): target is DOMNode => {
+  return isDOMNode(target) && ReactEditor.hasDOMNode(editor, target, { editable: true })
+}
+
+type ElementType<P = any> = {
+  [K in keyof JSX.IntrinsicElements]: P extends JSX.IntrinsicElements[K] ? K : never
+}[keyof JSX.IntrinsicElements]
+
+/**
+ * Check if a DOM event is overrided by a handler.
+ */
+
+export const isDOMEventHandled = <E extends Event>(event: E, handler?: (event: E) => void | boolean) => {
+  if (!handler) {
+    return false
+  }
+
+  // The custom event handler may return a boolean to specify whether the event
+  // shall be treated as being handled or not.
+  const shouldTreatEventAsHandled = handler(event)
+
+  if (shouldTreatEventAsHandled != null) {
+    return shouldTreatEventAsHandled
+  }
+
+  return event.defaultPrevented
+}
+
+/**
+ * Check if the target is in the editor.
+ */
+
+export const hasTarget = (editor: ReactEditor, target: EventTarget | null): target is DOMNode => {
+  return isDOMNode(target) && ReactEditor.hasDOMNode(editor, target)
+}
+
+/**
+ * Check if the target is inside void and in the editor.
+ */
+
+export const isTargetInsideVoid = (editor: ReactEditor, target: EventTarget | null): boolean => {
+  const slateNode = hasTarget(editor, target) && ReactEditor.toSlateNode(editor, target)
+  return Editor.isVoid(editor, slateNode)
+}
+
+/**
+ * Check if an event is overrided by a handler.
+ */
+
+export const isEventHandled = <EventType extends Event>(
+  event: EventType,
+  handler?: (event: EventType) => void | boolean
+) => {
+  if (!handler) {
+    return false
+  }
+  // The custom event handler may return a boolean to specify whether the event
+  // shall be treated as being handled or not.
+  const shouldTreatEventAsHandled = handler(event)
+
+  if (shouldTreatEventAsHandled != null) {
+    return shouldTreatEventAsHandled
+  }
+
+  return event.defaultPrevented
+  //TODO: What's isPropagationStopped ?
+  // return event.isDefaultPrevented() || event.isPropagationStopped()
+}

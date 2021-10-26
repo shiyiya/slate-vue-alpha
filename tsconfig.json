@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
+    "importHelpers": true,
     "baseUrl": ".",
     "paths": {
-      "slate-vue-alpha": [
-        "./src"
-      ]
+      "slate-vue-alpha": ["./src"]
     },
     "target": "esnext",
     "useDefineForClassFields": true,
@@ -15,17 +14,9 @@
     "sourceMap": false,
     //    "resolveJsonModule": true,
     "esModuleInterop": true,
-    "lib": [
-      "esnext",
-      "dom"
-    ]
+    "lib": ["esnext", "dom"],
+    "forceConsistentCasingInFileNames": true,
+    "removeComments": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "site/**/*.ts",
-    "site/**/*.vue"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "site/**/*.ts", "site/**/*.vue"]
 }

@@ -16,6 +16,7 @@ const StringProps = {
 }
 
 const RawString = defineComponent({
+  name:'TextString',
   props: StringProps,
   setup(props) {
     const editor = useSlateStatic() // keep reactivity
@@ -65,6 +66,7 @@ const RawString = defineComponent({
  */
 
 const TextString = defineComponent({
+  name:'TextString',
   props: { text: String, isTrailing: Boolean },
   setup(props) {
     const ref = useRef<HTMLSpanElement | null>(null)
@@ -91,6 +93,7 @@ const TextString = defineComponent({
  */
 
 const ZeroWidthString = defineComponent({
+  name:'ZeroWidthString',
   props: {
     length: Number,
     isLineBreak: Boolean
