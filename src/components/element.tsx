@@ -13,6 +13,7 @@ import Text from './text'
 import { useSlateStatic } from '../hooks/use-slate-static'
 import { ReactEditor } from '../plugin/react-editor'
 import { useReadOnly } from '../hooks/useReadOnly'
+import useMountedUpdateEffect from '../hooks/use-mount-update'
 
 type ElementProps = {
   decorations: Range[]
@@ -38,10 +39,25 @@ export const Element = defineComponent({
     const ref = useRef<HTMLElement>()
     const editor = useSlateStatic()
     const readOnly = useReadOnly()
+
+    useMountedUpdateEffect(() => {
+      const element = props.element!
+      const key = ReactEditor.findKey(editor, element)
+      // Update element-related weak maps with the DOM element ref.
+      const KEY_TO_ELEMENT = EDITOR_TO_KEY_TO_ELEMENT.get(editor)
+      if (ref.value) {
+        KEY_TO_ELEMENT?.set(key, ref.value)
+        NODE_TO_ELEMENT.set(element, ref.value)
+        ELEMENT_TO_NODE.set(ref.value, element)
+      } else {
+        KEY_TO_ELEMENT?.delete(key)
+        NODE_TO_ELEMENT.delete(element)
+      }
+    })
+
     return () => {
       const { decorations, element, selection } = props as ElementProps
       const isInline = editor.isInline(element)
-      const key = ReactEditor.findKey(editor, element)
 
       // Attributes that the developer must mix into the element in their
       // custom node renderer component.
@@ -72,16 +88,6 @@ export const Element = defineComponent({
         }
       }
 
-      // Update element-related weak maps with the DOM element ref.
-      const KEY_TO_ELEMENT = EDITOR_TO_KEY_TO_ELEMENT.get(editor)
-      if (ref.value) {
-        KEY_TO_ELEMENT?.set(key, ref.value)
-        NODE_TO_ELEMENT.set(element, ref.value)
-        ELEMENT_TO_NODE.set(ref.value, element)
-      } else {
-        KEY_TO_ELEMENT?.delete(key)
-        NODE_TO_ELEMENT.delete(element)
-      }
       let Tag: any
       let text: any
       if (Editor.isVoid(editor, element)) {
@@ -97,7 +103,7 @@ export const Element = defineComponent({
         NODE_TO_PARENT.set(text, element)
       }
 
-      console.info('%c Element Rerender ', 'background: yellow; padding:3px 0px; color: #fff;')
+      console.info('%c Element Rerender ', 'background: yellow; padding:3px 0px; color: #000;')
 
       return (
         <DefaultElement element={element} attributes={attributes}>

@@ -1,16 +1,16 @@
-import {BaseEditor, Editor, Node, Path, Point, Range, Transforms} from 'slate'
+import { Editor, Node, Path, Point, Range, Transforms, BaseEditor } from 'slate'
 
-import {Key} from '../utils/key'
+import { Key } from '../utils/key'
 import {
   EDITOR_TO_ELEMENT,
-  EDITOR_TO_KEY_TO_ELEMENT,
-  EDITOR_TO_WINDOW,
   ELEMENT_TO_NODE,
   IS_FOCUSED,
   IS_READ_ONLY,
   NODE_TO_INDEX,
   NODE_TO_KEY,
-  NODE_TO_PARENT
+  NODE_TO_PARENT,
+  EDITOR_TO_WINDOW,
+  EDITOR_TO_KEY_TO_ELEMENT
 } from '../utils/weak-maps'
 import {
   DOMElement,
@@ -19,12 +19,12 @@ import {
   DOMRange,
   DOMSelection,
   DOMStaticRange,
-  hasShadowRoot,
   isDOMElement,
   isDOMSelection,
-  normalizeDOMPoint
+  normalizeDOMPoint,
+  hasShadowRoot
 } from '../utils/dom'
-import {IS_CHROME, IS_FIREFOX} from '../utils/environment'
+import { IS_CHROME, IS_FIREFOX } from '../utils/environment'
 
 /**
  * A React and DOM-specific version of the `Editor` interface.
@@ -32,6 +32,8 @@ import {IS_CHROME, IS_FIREFOX} from '../utils/environment'
 
 export interface ReactEditor extends BaseEditor {
   insertData: (data: DataTransfer) => void
+  insertFragmentData: (data: DataTransfer) => void
+  insertTextData: (data: DataTransfer) => void
   setFragmentData: (data: DataTransfer) => void
   hasRange: (editor: ReactEditor, range: Range) => boolean
 }
@@ -104,10 +106,7 @@ export const ReactEditor = {
     const el = ReactEditor.toDOMNode(editor, editor)
     const root = el.getRootNode()
 
-    if (
-      root instanceof Document  || root instanceof ShadowRoot  &&
-      root.getSelection != null
-    ) {
+    if ((root instanceof Document || root instanceof ShadowRoot) && root.getSelection != null) {
       return root
     }
 
@@ -166,7 +165,6 @@ export const ReactEditor = {
     const el = ReactEditor.toDOMNode(editor, editor)
     const { selection } = editor
     const root = ReactEditor.findDocumentOrShadowRoot(editor)
-    //@ts-ignore
     const domSelection = root.getSelection()
 
     if (domSelection && domSelection.rangeCount > 0) {
@@ -205,7 +203,12 @@ export const ReactEditor = {
 
     return (
       targetEl.closest(`[data-slate-editor]`) === editorEl &&
-      (!editable || targetEl.isContentEditable || !!targetEl.getAttribute('data-slate-zero-width'))
+      (!editable || targetEl.isContentEditable
+        ? true
+        : (typeof targetEl.isContentEditable === 'boolean' && // isContentEditable exists only on HTMLElement, and on other nodes it will be undefined
+            // this is the core logic that lets you know you got the right editor.selection instead of null when editor is contenteditable="false"(readOnly)
+            targetEl.closest('[contenteditable="false"]') === editorEl) ||
+          !!targetEl.getAttribute('data-slate-zero-width'))
     )
   },
 
@@ -215,6 +218,22 @@ export const ReactEditor = {
 
   insertData(editor: ReactEditor, data: DataTransfer): void {
     editor.insertData(data)
+  },
+
+  /**
+   * Insert fragment data from a `DataTransfer` into the editor.
+   */
+
+  insertFragmentData(editor: ReactEditor, data: DataTransfer): void {
+    editor.insertFragmentData(data)
+  },
+
+  /**
+   * Insert text data from a `DataTransfer` into the editor.
+   */
+
+  insertTextData(editor: ReactEditor, data: DataTransfer): void {
+    editor.insertTextData(data)
   },
 
   /**

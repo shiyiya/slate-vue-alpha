@@ -1,4 +1,5 @@
 import { Editor, Element, Node, Path, Text } from 'slate'
+import useMountedUpdateEffect from '../hooks/use-mount-update'
 import { defineComponent, Prop, ref as useRef, watchEffect } from 'vue'
 import { useSlateStatic } from '../hooks/use-slate-static'
 import { ReactEditor } from '../plugin/react-editor'
@@ -16,7 +17,7 @@ const StringProps = {
 }
 
 const RawString = defineComponent({
-  name:'TextString',
+  name: 'TextString',
   props: StringProps,
   setup(props) {
     const editor = useSlateStatic() // keep reactivity
@@ -66,16 +67,18 @@ const RawString = defineComponent({
  */
 
 const TextString = defineComponent({
-  name:'TextString',
+  name: 'TextString',
   props: { text: String, isTrailing: Boolean },
   setup(props) {
     const ref = useRef<HTMLSpanElement | null>(null)
     const forceUpdateCount = useRef(0)
-    watchEffect(() => {
+
+    useMountedUpdateEffect(() => {
       if (ref.value && ref.value.textContent !== props.text) {
         forceUpdateCount.value += 1
       }
     })
+
     // This component may have skipped rendering due to native operations being
     // applied. If an undo is performed React will see the old and new shadow DOM
     // match and not apply an update. Forces each render to actually reconcile.
@@ -93,7 +96,7 @@ const TextString = defineComponent({
  */
 
 const ZeroWidthString = defineComponent({
-  name:'ZeroWidthString',
+  name: 'ZeroWidthString',
   props: {
     length: Number,
     isLineBreak: Boolean

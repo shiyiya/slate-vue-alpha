@@ -25,7 +25,7 @@ const LeafProps = {
 }
 
 const Leaf = defineComponent({
-  name:'Leaf',
+  name: 'Leaf',
   props: LeafProps,
   setup(props) {
     const placeholderRef = ref<HTMLSpanElement | null>(null)
@@ -48,13 +48,10 @@ const Leaf = defineComponent({
 
     return () => {
       const { leaf, isLast, text, parent } = props as LeafProps
-      const attributes: {
-        'data-slate-leaf': true
-      } = {
-        'data-slate-leaf': true
-      }
+      const attributes: { 'data-slate-leaf': true } = { 'data-slate-leaf': true }
       console.info('%c Leaf Rerender ', 'background: green;  padding:3px 0px; color: #fff;')
       console.log(leaf)
+
       return (
         <DefaultLeaf attributes={attributes} leaf={leaf} text={text}>
           {(leaf as any)[PLACEHOLDER_SYMBOL] ? (
@@ -96,7 +93,7 @@ const DefaultLeafProps = {
   }>
 }
 export const DefaultLeaf = defineComponent({
-  name:'DefaultLeaf',
+  name: 'DefaultLeaf',
   props: DefaultLeafProps,
   render() {
     return <span {...this.$props.attributes}>{renderSlot(this.$slots, 'default')}</span>

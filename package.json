@@ -1,11 +1,11 @@
 {
   "name": "slate-vue-alpha",
   "version": "0.0.0",
-  "main": "dist/es/index.js",
-  "module": "dist/es/index.js",
-  "umd": "dist/umd/index.js",
+  "main": "lib/es/index.js",
+  "module": "lib/es/index.js",
+  "umd": "lib/umd/index.js",
   "files": [
-    "dist/"
+    "lib/"
   ],
   "scripts": {
     "dev": "vite",

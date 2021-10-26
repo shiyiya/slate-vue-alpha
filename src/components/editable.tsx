@@ -47,6 +47,7 @@ import {
 import Hotkeys from '../utils/hotkeys'
 import { useSlate } from '../hooks/use-slate'
 import { Children } from './children'
+import useMountedUpdateEffect from '../hooks/use-mount-update'
 
 export type EditableProps = {
   decorate?: (entry: NodeEntry) => Range[]
@@ -210,8 +211,7 @@ export const Editable = defineComponent({
       })
     }
     // Whenever the editor updates...
-    onMounted(effect)
-    onUpdated(effect)
+    useMountedUpdateEffect(effect)
 
     // Listen on the native `beforeinput` event to get real "Level 2" events. This
     // is required because React's `beforeinput` is fake and never really attaches
