@@ -3,17 +3,7 @@ import { direction as getDirection } from 'direction'
 import throttle from 'lodash/throttle'
 import scrollIntoView from 'scroll-into-view-if-needed'
 import type * as React from 'vue'
-import {
-  defineComponent,
-  onBeforeUnmount,
-  onMounted,
-  onUpdated,
-  PropType,
-  provide,
-  ref as useRef,
-  renderSlot,
-  watch
-} from 'vue'
+import { defineComponent, PropType, provide, ref as useRef, renderSlot, watch } from 'vue'
 import { ReactEditor } from '../plugin/react-editor'
 import {
   DOMElement,
@@ -47,7 +37,7 @@ import {
 import Hotkeys from '../utils/hotkeys'
 import { useSlate } from '../hooks/use-slate'
 import { Children } from './children'
-import useMountedUpdateEffect from '../hooks/use-mount-update'
+import useEffect from '../hooks/use-effect'
 
 export type EditableProps = {
   decorate?: (entry: NodeEntry) => Range[]
@@ -106,11 +96,8 @@ export const Editable = defineComponent({
       latestElement: null as DOMElement | null
     }
 
-    const effect = () => {
-      if (ref.value && props.autofocus) {
-        ref.value.focus()
-      }
-
+    // Whenever the editor updates...
+    useEffect(() => {
       const { scrollSelectionIntoView = defaultScrollSelectionIntoView } = props
       const editor = slate.value[0]
       // Update element-related weak maps with the DOM element ref.
@@ -209,9 +196,15 @@ export const Editable = defineComponent({
 
         state.isUpdatingSelection = false
       })
-    }
-    // Whenever the editor updates...
-    useMountedUpdateEffect(effect)
+    })
+
+    // The autoFocus TextareaHTMLAttribute doesn't do anything on a div, so it
+    // needs to be manually focused.
+    useEffect(() => {
+      if (ref.value && props.autofocus) {
+        ref.value.focus()
+      }
+    }, [() => props.autofocus])
 
     // Listen on the native `beforeinput` event to get real "Level 2" events. This
     // is required because React's `beforeinput` is fake and never really attaches
@@ -402,16 +395,17 @@ export const Editable = defineComponent({
     // built-in `onBeforeInput` is actually a leaky polyfill that doesn't expose
     // real `beforeinput` events sadly... (2019/11/04)
     // https://github.com/facebook/react/issues/11211
-    onMounted(() => {
+    useEffect(() => {
       if (ref.value && HAS_BEFORE_INPUT_SUPPORT) {
         ref.value.addEventListener('beforeinput', onDOMBeforeInput)
       }
-    })
-    onBeforeUnmount(() => {
-      if (ref.value && HAS_BEFORE_INPUT_SUPPORT) {
-        ref.value.removeEventListener('beforeinput', onDOMBeforeInput)
+
+      return () => {
+        if (ref.value && HAS_BEFORE_INPUT_SUPPORT) {
+          ref.value.removeEventListener('beforeinput', onDOMBeforeInput)
+        }
       }
-    })
+    }, [])
 
     // Listen on the native `selectionchange` event to be able to update any time
     // the selection changes. This is required because React's `onSelect` is leaky
@@ -460,15 +454,13 @@ export const Editable = defineComponent({
     // leaky polyfill that only fires on keypresses or clicks. Instead, we want to
     // fire for any change to the selection inside the editor. (2019/11/04)
     // https://github.com/facebook/react/issues/5785
-    onMounted(() => {
-      const editor = slate.value[0]
-      ReactEditor.getWindow(editor).document.addEventListener('selectionchange', scheduleOnDOMSelectionChange)
-    })
-
-    onBeforeUnmount(() => {
-      const editor = slate.value[0]
-      ReactEditor.getWindow(editor).document.removeEventListener('selectionchange', scheduleOnDOMSelectionChange)
-    })
+    useEffect(() => {
+      const window = ReactEditor.getWindow(slate.value[0])
+      window.document.addEventListener('selectionchange', scheduleOnDOMSelectionChange)
+      return () => {
+        window.document.removeEventListener('selectionchange', scheduleOnDOMSelectionChange)
+      }
+    }, [])
 
     // provide Ref or Raw ?
     provide(SlateReadOnlyKey, props.readOnly) // TODO: will update ?

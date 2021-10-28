@@ -13,7 +13,7 @@ import Text from './text'
 import { useSlateStatic } from '../hooks/use-slate-static'
 import { ReactEditor } from '../plugin/react-editor'
 import { useReadOnly } from '../hooks/useReadOnly'
-import useMountedUpdateEffect from '../hooks/use-mount-update'
+import useEffect from '../hooks/use-effect'
 
 type ElementProps = {
   decorations: Range[]
@@ -40,7 +40,7 @@ export const Element = defineComponent({
     const editor = useSlateStatic()
     const readOnly = useReadOnly()
 
-    useMountedUpdateEffect(() => {
+    useEffect(() => {
       const element = props.element!
       const key = ReactEditor.findKey(editor, element)
       // Update element-related weak maps with the DOM element ref.

@@ -1,9 +1,10 @@
 import { Element, Range, Text as SlateText } from 'slate'
 import { EDITOR_TO_KEY_TO_ELEMENT, ELEMENT_TO_NODE, NODE_TO_ELEMENT } from '../utils/weak-maps'
-import {defineComponent, onMounted, onUpdated, PropType, ref as useRef, toRaw} from 'vue'
+import { defineComponent, onMounted, onUpdated, PropType, ref as useRef, toRaw } from 'vue'
 import Leaf from './leaf'
 import { useSlateStatic } from '../hooks/use-slate-static'
 import { ReactEditor } from '../plugin/react-editor'
+import useEffect from '../hooks/use-effect'
 
 /**
  * Text.
@@ -28,7 +29,7 @@ const TextProps = {
 }
 
 const Text = defineComponent({
-  name:'Text',
+  name: 'Text',
   props: TextProps,
   setup(props) {
     const editor = useSlateStatic()
@@ -39,7 +40,7 @@ const Text = defineComponent({
     const key = ReactEditor.findKey(editor, text)
 
     // Update element-related weak maps with the DOM element ref.
-    const reactEffect = () => {
+    useEffect(() => {
       const KEY_TO_ELEMENT = EDITOR_TO_KEY_TO_ELEMENT.get(editor)
       if (ref.value) {
         KEY_TO_ELEMENT?.set(key, ref.value)
@@ -49,9 +50,7 @@ const Text = defineComponent({
         KEY_TO_ELEMENT?.delete(key)
         NODE_TO_ELEMENT.delete(text)
       }
-    }
-    onMounted(reactEffect)
-    onUpdated(reactEffect)
+    })
 
     return () => {
       console.info('%c Text Rerender ', 'background: blue; padding:3px 0px; color: #fff;')

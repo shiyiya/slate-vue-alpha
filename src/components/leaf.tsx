@@ -3,6 +3,7 @@ import String from './string'
 import { DefaultPlaceholder } from './editable'
 import { defineComponent, onBeforeUpdate, PropType, ref, renderSlot, watch } from 'vue'
 import { PLACEHOLDER_SYMBOL } from '../utils/weak-maps'
+import useEffect from '../hooks/use-effect'
 
 /**
  * Individual leaves in a text node with unique formatting.
@@ -30,7 +31,7 @@ const Leaf = defineComponent({
   setup(props) {
     const placeholderRef = ref<HTMLSpanElement | null>(null)
 
-    const reactEffect = () => {
+    useEffect(() => {
       const placeholderEl = placeholderRef?.value
       const editorEl = document.querySelector<HTMLDivElement>('[data-slate-editor="true"]')
 
@@ -39,8 +40,7 @@ const Leaf = defineComponent({
       }
 
       editorEl.style.minHeight = `${placeholderEl.clientHeight}px`
-    }
-    watch([() => props.leaf, placeholderRef], reactEffect)
+    }, [() => props.leaf, placeholderRef])
 
     onBeforeUpdate(() => {
       ;(document.querySelector<HTMLDivElement>('[data-slate-editor="true"]') as HTMLDivElement).style.minHeight = 'auto'

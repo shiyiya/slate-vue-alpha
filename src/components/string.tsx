@@ -1,5 +1,5 @@
 import { Editor, Element, Node, Path, Text } from 'slate'
-import useMountedUpdateEffect from '../hooks/use-mount-update'
+import useEffect from '../hooks/use-effect'
 import { defineComponent, Prop, ref as useRef, watchEffect } from 'vue'
 import { useSlateStatic } from '../hooks/use-slate-static'
 import { ReactEditor } from '../plugin/react-editor'
@@ -73,7 +73,7 @@ const TextString = defineComponent({
     const ref = useRef<HTMLSpanElement | null>(null)
     const forceUpdateCount = useRef(0)
 
-    useMountedUpdateEffect(() => {
+    useEffect(() => {
       if (ref.value && ref.value.textContent !== props.text) {
         forceUpdateCount.value += 1
       }

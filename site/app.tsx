@@ -9,7 +9,7 @@ setAutoFreeze(false)
 
 export default {
   setup() {
-    const state = reactive({ count: 0, o: { count: 0 }, readOnly: false, autofocus: false })
+    const state = reactive({ count: 0, o: { count: 0 }, readOnly: false, autofocus: true })
     const editor = withReact(createEditor())
     let md = ref<any[]>([
       {
@@ -18,8 +18,8 @@ export default {
       }
     ])
 
-    const onChange = (value: Descendant[]) => {
-      console.log('app', toRaw(value))
+    const onChange = (value: any[]) => {
+      console.log('app', toRaw(value[0]?.children?.[0].text))
       md.value = value
     }
 
