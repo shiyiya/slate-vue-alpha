@@ -4,6 +4,7 @@ import { EDITOR_TO_ON_CHANGE } from '../utils/weak-maps'
 import { defineComponent, onBeforeUnmount, onMounted, PropType, provide, renderSlot, watchEffect } from 'vue'
 import { useState } from '../hooks/use-state'
 import { EditorFocusedKey, SlateKey, SlateStaticKey } from '../utils/injectionSymbols'
+import useEffect from '../hooks/use-effect'
 
 /**
  * A wrapper around the provider to handle `onChange` events, because the editor
@@ -54,18 +55,17 @@ export const Slate = defineComponent({
       EDITOR_TO_ON_CHANGE.set(props.editor!, onContextChange)
     })
 
-    const autoFocus = () => setIsFocused(ReactEditor.isFocused(props.editor!))
-
-    onMounted(() => {
+    const autoFocus = () => setIsFocused(ReactEditor.isFocused(context.value[0]!))
+    useEffect(() => {
       document.addEventListener('focus', autoFocus, true)
       document.addEventListener('blur', autoFocus, true)
-    })
 
-    onBeforeUnmount(() => {
-      EDITOR_TO_ON_CHANGE.set(props.editor!, () => {})
-      document.removeEventListener('focus', autoFocus, true)
-      document.removeEventListener('blur', autoFocus, true)
-    })
+      return () => {
+        EDITOR_TO_ON_CHANGE.set(props.editor!, () => {})
+        document.removeEventListener('focus', autoFocus, true)
+        document.removeEventListener('blur', autoFocus, true)
+      }
+    }, [])
 
     provide(SlateKey, context)
     provide(SlateStaticKey, props.editor)

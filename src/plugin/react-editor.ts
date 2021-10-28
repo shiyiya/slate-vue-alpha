@@ -249,7 +249,7 @@ export const ReactEditor = {
    */
 
   toDOMNode(editor: ReactEditor, node: Node): HTMLElement {
-    const KEY_TO_ELEMENT = EDITOR_TO_KEY_TO_ELEMENT.get(editor)
+    const KEY_TO_ELEMENT = EDITOR_TO_KEY_TO_ELEMENT.get(editor) // error 空 可能是 editor 不一致 text elment
     const domNode = Editor.isEditor(node)
       ? EDITOR_TO_ELEMENT.get(editor)
       : KEY_TO_ELEMENT?.get(ReactEditor.findKey(editor, node))

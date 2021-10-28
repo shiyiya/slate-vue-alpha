@@ -1,6 +1,6 @@
-import {Ancestor, Editor, Node} from 'slate'
+import { Ancestor, Editor, Node } from 'slate'
 
-import {Key} from './key'
+import { Key } from './key'
 
 /**
  * Two weak maps that allow us rebuild a path given a node. They are populated

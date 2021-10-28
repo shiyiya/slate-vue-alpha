@@ -16,6 +16,9 @@ export const common: UserConfig = {
   esbuild: {
     jsxFactory: 'h',
     jsxFragment: 'Fragment'
+  },
+  server: {
+    port: 3001
   }
 }
 

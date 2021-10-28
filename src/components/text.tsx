@@ -1,6 +1,6 @@
 import { Element, Range, Text as SlateText } from 'slate'
 import { EDITOR_TO_KEY_TO_ELEMENT, ELEMENT_TO_NODE, NODE_TO_ELEMENT } from '../utils/weak-maps'
-import { defineComponent, onMounted, onUpdated, PropType, ref as useRef, toRaw } from 'vue'
+import { defineComponent, PropType, ref as useRef, toRaw } from 'vue'
 import Leaf from './leaf'
 import { useSlateStatic } from '../hooks/use-slate-static'
 import { ReactEditor } from '../plugin/react-editor'
@@ -35,12 +35,10 @@ const Text = defineComponent({
     const editor = useSlateStatic()
     const ref = useRef<HTMLSpanElement | null>(null)
 
-    const { decorations, text } = props as TextProps
-    const leaves = SlateText.decorations(text, decorations) //TODO: toRef
-    const key = ReactEditor.findKey(editor, text)
-
     // Update element-related weak maps with the DOM element ref.
     useEffect(() => {
+      const { text } = props as TextProps
+      const key = ReactEditor.findKey(editor, text)
       const KEY_TO_ELEMENT = EDITOR_TO_KEY_TO_ELEMENT.get(editor)
       if (ref.value) {
         KEY_TO_ELEMENT?.set(key, ref.value)
@@ -53,10 +51,12 @@ const Text = defineComponent({
     })
 
     return () => {
-      console.info('%c Text Rerender ', 'background: blue; padding:3px 0px; color: #fff;')
-      console.info(toRaw(props))
+      const { decorations, isLast, parent, text } = props as TextProps
+      const leaves = SlateText.decorations(text, decorations) //TODO: toRef
+      const key = ReactEditor.findKey(editor, text)
 
-      const { isLast, parent, text } = props as TextProps
+      console.info('%c Text Rerender ', 'background: blue; padding:3px 0px; color: #fff;')
+
       return (
         <span data-slate-node="text" ref={ref}>
           {leaves.map((leaf, i) => {
