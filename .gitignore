@@ -11,3 +11,4 @@ dist-ssr
 package-lock.json
 
 site/*.vue
+lib

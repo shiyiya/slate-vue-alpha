@@ -1,22 +1,23 @@
 {
   "name": "slate-vue-alpha",
   "version": "0.0.0",
-  "main": "lib/es/index.js",
-  "module": "lib/es/index.js",
-  "umd": "lib/umd/index.js",
+  "main": "./lib/slate-vue.umd.js",
+  "module": "./lib/slate-vue.es.js",
   "files": [
     "lib/"
   ],
+  "exports": {
+    ".": {
+      "import": "./lib/slate-vue.umd.js",
+      "require": "./lib/slate-vue.umd.js"
+    }
+  },
   "scripts": {
     "dev": "vite",
-    "build:site": "cross-env NODE_ENV=production && vue-tsc --noEmit && vite build",
-    "serve:site": "vite preview",
-    "build:cjs": "tsc -m commonjs --target es5 --outDir dist/cjs",
-    "build:es": "tsc -m es6  --target es5 --outDir dist/esm",
-    "build:umd": "tsc -m umd  --target es5 --outDir dist/umd",
-    "build:esnext": "tsc -m ESNext --target ESNext --outDir dist/esnext",
-    "build": "yarn cleanup && yarn build:cjs && yarn build:es && yarn build:esnext &&  yarn build:umd",
-    "cleanup": "rimraf dist"
+    "build:site": "cross-env NODE_ENV=production && vue-tsc --noEmit && vite build --config vite.site.config.ts",
+    "build:lib": "cross-env NODE_ENV=production && vue-tsc --noEmit && vite build --config vite.lib.config.ts",
+    "build:type": "tsc --emitDeclarationOnly ",
+    "build": "yarn build:lib && yarn build:site && yarn build:type"
   },
   "peerDependencies": {
     "slate": "^0.66.0",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@types/is-hotkey": "^0.1.5",
     "@types/lodash": "^4.14.176",
+    "@types/node": "^16.11.6",
     "@vitejs/plugin-vue": "^1.9.3",
     "@vitejs/plugin-vue-jsx": "^1.2.0",
     "cross-env": "^7.0.3",
