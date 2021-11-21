@@ -20,7 +20,9 @@ const useEffect = <T extends (WatchSource<unknown> | object)[]>(effect: Effect, 
     onUpdated(effect)
   }
 
-  unmountEffect && onBeforeUnmount(unmountEffect)
+  onBeforeUnmount(() => {
+    unmountEffect?.()
+  })
 }
 
 export default useEffect
